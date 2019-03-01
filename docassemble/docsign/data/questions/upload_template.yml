@@ -1,0 +1,97 @@
+---
+metadata:
+  title: |
+    Sign a document
+---
+include: 
+  - docassemble.gbls:basic-questions-gbls.yml
+  #- basic-questions-gbls.yml
+---
+mandatory: True
+code: |
+  the_file
+  review_people
+  download_forms
+---
+table: individuals.table
+rows: individuals
+columns:
+  - Variable: |
+      row_item.instanceName
+  - Name: |
+      row_item
+  - Contact info: |
+      showifdef('row_item.mobile_number') + ', ' + showifdef('row_item.email')
+edit:
+  - name.first
+---
+table: adverse_parties.table
+rows: adverse_parties
+columns:
+  - Variable: |
+      row_item.instanceName
+  - Name: |
+      row_item
+edit:
+  - name.text  
+---
+question: |
+  Template
+subquestion: |
+  
+  Upload a Word document with a placeholder where you want the signature to go.
+  Surround the placeholder name with `{{ }}`.
+  
+  You can choose from client.signature, advocate.signature, or from individuals[0-n]
+  and adverse_parties[0-n]. Click Help to learn more.
+ 
+  % if url_args.get('args'):
+  So far we already know about ${individuals} and ${adverse_parties}.
+  % endif  
+fields:
+  - Choose a template file: the_file
+    datatype: file
+help: |
+  Edit your Word file and type something like `{{advocate.signature}}` on the line
+  in the file where you want the signature to appear.
+  
+  Like this: [FILE insert_signature.png]
+  
+  You can replace `advocate` only with a variable we already know about:
+  
+  * client
+  * advocate
+  * individuals[0..n] (add as many as you want, replacing 0 with the number in order)
+  * adverse_parties[0..n] (same as above, this is a list that can be as large as you want)
+  
+  Referring to the variable on its own adds the name of the client/advocate/person
+  into the document. E.g., `{{client}}`. If you want to collect the signature, 
+  add `.signature` to the variable's name.
+  
+  If you launch this interview from Legal Server, we'll gather as many of the fields
+  as we can. That also includes fields like `client.address_block()`, 
+  `client.phone_number`, `client.mobile_number`, `client.email`, and `client.birthdate`.
+---
+field: review_people
+question: |
+  Review the people whose information will appear on the letter
+subquestion: |
+  ${individuals.table}
+  ${individuals.add_action()}
+  
+  ${adverse_parties.table}
+  ${adverse_parties.add_action()}
+---
+mandatory: True
+event: download_forms
+question: |
+  Here is your document.
+attachment:
+  name: Your letter
+  filename: letter
+  docx template file:
+    code: |
+      the_file    
+  valid formats:
+    - pdf
+    - docx
