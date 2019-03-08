@@ -43,9 +43,9 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.docsign',
-      version='0.1',
+      version='0.2',
       description=(''),
-      long_description=u'# docassemble.docsign\n\n\n\n## Author\n\nQuinten Steenhuis, admin@admin.com\n\n',
+      long_description=u'# docassemble.docsign\r\n\r\n\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, admin@admin.com\r\n\r\n',
       long_description_content_type='text/markdown',
       author='Quinten Steenhuis',
       author_email='admin@admin.com',

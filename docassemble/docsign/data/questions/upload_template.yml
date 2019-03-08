@@ -3,15 +3,80 @@ metadata:
   title: |
     Sign a document
 ---
-include: 
-  - docassemble.gbls:basic-questions-gbls.yml
-  #- basic-questions-gbls.yml
+modules:
+  - docassemble.base.pandoc
 ---
+objects:
+  - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
+---
+include:   
+  #- docassemble.gbls:basic-questions-gbls.yml
+  - basic-questions-gbls.yml
+---
+id: interview_order
 mandatory: True
 code: |
+  multi_user = True
   the_file
-  review_people
+  list_fields
+  get_advocate_name
+  advocate.email
+  if url_args.get('args'):
+    review_people
+  if 'client' in final_fields:
+    client.name.first    
+  send_by_email
+  send_message
+  if not defined('client_approves'):
+    wait_for_response
+---
+event: share_with_user
+code: |
+  approval_workflow
+---
+code: |
+  client_approves
   download_forms
+  approval_workflow = True
+---
+code: |
+  from docassemble.base.parse import docx_variable_fix
+  result_file = word_to_markdown(the_file.path(), 'docx')
+  if result_file is None:
+    fields = word("Error: no fields could be found in the file")
+  else:
+     with open(result_file.name, 'rU', encoding='utf-8') as fp:
+       result = fp.read()
+       fields = set()
+       for variable in re.findall(r'{{ *([^\} ]+) *}}', result):
+         fields.add(variable)
+       for variable in re.findall(r'{%[a-z]* for [A-Za-z\_][A-Za-z0-9\_]* in *([^\} ]+) *%}', result):
+         fields.add(variable)
+       del fp
+  del result_file       
+  final_fields = fields
+---
+field: list_fields
+question: |
+  Fields
+subquestion: |
+  ${comma_and_list(final_fields)}
+  
+  ${'client' in final_fields}
+---
+code: |
+  if not defined('advocate.name.first'):
+    advocate.name.first = user_info().first_name
+    advocate.name.last = user_info().last_name
+  get_advocate_name = True
+---
+question: |
+  Are there any people who are named in the document?
+yesno: individuals.there_are_any
+---
+question: |
+  Is there anyone else?
+yesno: individuals.there_is_another
 ---
 table: individuals.table
 rows: individuals
@@ -72,6 +137,13 @@ help: |
   as we can. That also includes fields like `client.address_block()`, 
   `client.phone_number`, `client.mobile_number`, `client.email`, and `client.birthdate`.
 ---
+question: |
+  What is your email address?
+subquestion: |
+  We'll send you a message at this address when your client has signed the forms.
+fields:
+  - no label: advocate.email
+---
 field: review_people
 question: |
   Review the people whose information will appear on the letter
@@ -82,13 +154,89 @@ subquestion: |
   ${adverse_parties.table}
   ${adverse_parties.add_action()}
 ---
+question: |
+  Ready to send out for a signature?
+subquestion: |
+  You can right-click and copy [the link to the interview](${interview_url_action('share_with_user')}).
+  Or send by text/email by entering it below.
+fields:
+  - Send link via email?: send_by_email
+    default: True
+    datatype: yesno
+  - Send link via text message?: send_by_sms
+    default: True
+    datatype: yesno
+  - Email address: send_to_email
+    datatype: email
+    default: ${showifdef('client.email','')}
+    required: False
+    show if: send_by_email
+  - Phone number: send_to_phone
+    default: ${showifdef('client.mobile_number','')}
+    required: False
+    show if: send_by_sms
+---
+code: |
+  if send_by_email and showifdef('send_to_email') and task_not_yet_performed('send email'):
+    send_email(to=send_to_email, template=client_signature_msg, task='send email')
+  if send_by_sms and showifdef('send_to_phone') and task_not_yet_performed('send sms'):
+    send_sms(to=send_to_phone, template=client_signature_msg, task='send sms')
+  send_message = True
+---
+code: |
+  if task_not_yet_performed('send advocate email'):
+    send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file])
+  send_to_advocate = True
+---
+question: |
+  Please review the document below
+subquestion: |
+  ${advocate} sent you this file for you to sign:
+  
+  ${pdf_concatenate(the_file)}
+  
+  Are you ready to sign it?
+yesno:  client_approves
+---
+template: client_signature_msg
+subject: |
+  ${advocate} sent you a document to sign
+content: |
+  ${advocate} from GBLS sent you a file that needs your signature. Please review
+  and sign it by clicking this link: ${interview_url_action('share_with_user')}
+---
+template: send_to_advocate_msg
+subject: |
+  ${client} returned your document
+content: |
+  The file you wanted ${client} to sign is ready.
+  
+  We also sent a copy to the Legal Server casefile.
+---
+event: wait_for_response
+question: |
+  Okay, sit tight.
+subquestion: |
+  We sent the file to ${client} for review.
+  
+  As a reminder, the link we sent the client was 
+  ${interview_url_action('share_with_user')} (this is for your client, not you.)
+---
+need: send_to_advocate
 mandatory: True
 event: download_forms
 question: |
   Here is your document.
+subquestion: |
+  We sent a copy to ${advocate}. You can also download this file for your records.
+  
+  ${signed_file}
+  
+---
 attachment:
   name: Your letter
   filename: letter
+  variable name: signed_file
   docx template file:
     code: |
       the_file    
