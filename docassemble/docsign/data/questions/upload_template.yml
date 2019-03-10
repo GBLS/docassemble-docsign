@@ -1,7 +1,7 @@
 ---
 metadata:
   title: |
-    Sign a document
+    Send a Word Document out for signature
 ---
 modules:
   - docassemble.base.pandoc
@@ -10,8 +10,8 @@ objects:
   - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
 ---
 include:   
-  #- docassemble.gbls:basic-questions-gbls.yml
-  - basic-questions-gbls.yml
+  - docassemble.gbls:basic-questions-gbls.yml
+  #- basic-questions-gbls.yml
 ---
 id: interview_order
 mandatory: True
@@ -21,8 +21,8 @@ code: |
   list_fields
   get_advocate_name
   advocate.email
-  if url_args.get('args'):
-    review_people
+  #if url_args.get('args'):
+  #  review_people
   if 'client' in final_fields:
     client.name.first    
   send_by_email
@@ -186,6 +186,8 @@ code: |
 code: |
   if task_not_yet_performed('send advocate email'):
     send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file])
+  if defined('lsfields.case_email') and task_not_yet_performed('send to legalserver'):
+    send_email(to=lsfields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file])
   send_to_advocate = True
 ---
 question: |
