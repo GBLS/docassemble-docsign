@@ -111,7 +111,7 @@ subquestion: |
   and adverse_parties[0-n]. Click Help to learn more.
  
   % if url_args.get('args'):
-  So far we already know about ${individuals} and ${adverse_parties}.
+  So far we already know about ${advocate}, ${client}, and ${adverse_parties}.
   % endif  
 fields:
   - Choose a template file: the_file
