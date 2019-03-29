@@ -1,7 +1,10 @@
 ---
 metadata:
   title: |
-    Send a Word Document out for signature
+    Get a client's signature
+  tags:
+    - everyone
+    - client signature
 ---
 modules:
   - docassemble.base.pandoc
@@ -11,20 +14,18 @@ objects:
 ---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml
-  #- basic-questions-gbls.yml
 ---
 id: interview_order
 mandatory: True
 code: |
+  prevent_going_back()
   multi_user = True
   the_file
-  list_fields
   get_advocate_name
   advocate.email
-  #if url_args.get('args'):
-  #  review_people
-  if 'client' in final_fields:
-    client.name.first    
+  client.name.first  
+  if url_args.get('args'):
+    review_people
   send_by_email
   send_message
   if not defined('client_approves'):
@@ -35,9 +36,25 @@ code: |
   approval_workflow
 ---
 code: |
+  # is_client
   client_approves
   download_forms
   approval_workflow = True
+---
+question: |
+  Are you ${client}?
+subquestion: |
+  This link is meant to be used by ${client} to sign a document sent by their
+  legal aid advocate.
+  
+  Are you ${client}?
+sets: is_client  
+buttons: 
+  - Yes, I am ${client}: 
+      code: |
+        is_client = True
+  - No.: exit
+    url: https://www.gbls.org
 ---
 code: |
   from docassemble.base.parse import docx_variable_fix
@@ -116,6 +133,8 @@ subquestion: |
 fields:
   - Choose a template file: the_file
     datatype: file
+    accept: |
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"    
 help: |
   Edit your Word file and type something like `{{advocate.signature}}` on the line
   in the file where you want the signature to appear.
@@ -148,11 +167,33 @@ field: review_people
 question: |
   Review the people whose information will appear on the letter
 subquestion: |
-  ${individuals.table}
-  ${individuals.add_action()}
-  
-  ${adverse_parties.table}
-  ${adverse_parties.add_action()}
+  The information below came from Legal Server.
+  Click the button next to the information if you need to edit it.
+review: 
+  - Client name:  client.name.first
+    button: |
+      The client's name is ${client}
+  - Client phone number: client.mobile_number
+    button: |
+      The client's mobile number is ${client.mobile_number}
+  - Client's email: client.email
+    button: |
+      ${client.email}
+  - Advocate: advocate.name.first
+    button: |
+      The advocate's name is ${advocate}
+  - Advocate's email: advocate.email
+    button: |
+      ${advocate.email}
+  - Case email: ls_fields.case_email
+    button: |
+      ${ls_fields.case_email}
+  - note: |
+      **Adverse Parties**
+      
+      ${adverse_parties.table}
+      
+      ${adverse_parties.add_action()}      
 ---
 question: |
   Ready to send out for a signature?
@@ -176,6 +217,11 @@ fields:
     required: False
     show if: send_by_sms
 ---
+question: |
+  Legal Server Case Email Address
+fields:
+  - Case email address: ls_fields.case_email
+---
 code: |
   if send_by_email and showifdef('send_to_email') and task_not_yet_performed('send email'):
     send_email(to=send_to_email, template=client_signature_msg, task='send email')
@@ -186,8 +232,8 @@ code: |
 code: |
   if task_not_yet_performed('send advocate email'):
     send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file])
-  if defined('lsfields.case_email') and task_not_yet_performed('send to legalserver'):
-    send_email(to=lsfields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file])
+  if defined('ls_fields.case_email') and task_not_yet_performed('send to legalserver'):
+    send_email(to=ls_fields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file])
   send_to_advocate = True
 ---
 question: |
@@ -220,9 +266,6 @@ question: |
   Okay, sit tight.
 subquestion: |
   We sent the file to ${client} for review.
-  
-  As a reminder, the link we sent the client was 
-  ${interview_url_action('share_with_user')} (this is for your client, not you.)
 ---
 need: send_to_advocate
 mandatory: True
