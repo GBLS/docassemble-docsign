@@ -6,8 +6,18 @@ metadata:
     - everyone
     - client signature
 ---
+features:
+  question help button: True
+---
 modules:
   - docassemble.base.pandoc
+  - docassemble.microsoftgraph.msgraph
+  #- .msgraph
+---
+objects:
+  - o365: MSGraphConnectionObject
+  - folders: DADict.using(object_type=LazyFileList, auto_gather=False)
+  - drive_contents: LazyFileList.using(auto_gather=False)  
 ---
 objects:
   - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
@@ -20,10 +30,21 @@ mandatory: True
 code: |
   prevent_going_back()
   multi_user = True
-  the_file
+  if file_type == 'existing':
+    load_file
+    the_file
+  else:
+    the_file
+  # list_fields    
   get_advocate_name
   advocate.email
-  client.name.first  
+  client.name.first
+  if "retainer\\_gbls\\_will" in final_fields:
+    retainer_gbls_will
+  if "retainer\\_client\\_costs" in final_fields:
+    retainer_client_costs  
+  if 'advocate.signature' in final_fields:
+    advocate.signature
   if url_args.get('args'):
     review_people
   send_by_email
@@ -34,6 +55,11 @@ code: |
 event: share_with_user
 code: |
   approval_workflow
+---
+code: |
+  if file_type == 'existing':
+    the_file = sp_file.as_dafile()
+  load_file = True
 ---
 code: |
   # is_client
@@ -79,6 +105,8 @@ question: |
 subquestion: |
   ${comma_and_list(final_fields)}
   
+  Uses retainer fields: ${'retainer_gbls_will' in final_fields}
+  
   ${'client' in final_fields}
 ---
 code: |
@@ -117,44 +145,83 @@ columns:
 edit:
   - name.text  
 ---
+code: |
+  drive_id = o365.get_drive_id("gblsma.sharepoint.com:/sites/helpdesk","Templates")
+  # folder_list = o365.get_folders_in_folder("gblsma.sharepoint.com:/sites/helpdesk", drive_id=drive_id)
+  o365.get_files_in_folder("gblsma.sharepoint.com:/sites/helpdesk", "Templates", drive_id=drive_id, lazylist=drive_contents)
+  drive_contents.gathered = True
+  gathered_file_questions = True
+---
 question: |
-  Template
+  Client Signature Tool
 subquestion: |
+  This tool allows you to email or text a document to your client to obtain
+  their signature. You can choose from some templates that IT has already uploaded,
+  including a general release and a retainer, or if you need to have your client
+  sign a new document, such as an agreement, you can upload a new Microsoft Word
+  file with special codes in it.
   
-  Upload a Word document with a placeholder where you want the signature to go.
-  Surround the placeholder name with `{{ }}`.
+  IT can help you enter the codes correctly. If all you want is your client's signature,
+  place the exact text `{{ client.signature }}` where you want the signature
+  to appear in the document.
   
-  You can choose from client.signature, advocate.signature, or from individuals[0-n]
-  and adverse_parties[0-n]. Click Help to learn more.
- 
-  % if url_args.get('args'):
-  So far we already know about ${advocate}, ${client}, and ${adverse_parties}.
-  % endif  
+  Click Help to learn about more codes you can include in the document, including
+  fields from Legal Server.
+  
+  Please use at your own risk for now. This is experimental and may not work when
+  you need it if you wait until the last minute.
 fields:
-  - Choose a template file: the_file
+  - no label: file_type
+    input type: radio
+    choices:
+      - Use existing form letter or template: existing
+      - Upload a new file: new
+  - Choose an existing template: sp_file
+    datatype: object
+    choices: drive_contents
+    show if:
+      variable: file_type
+      is: "existing"
+  - Upload a template file: the_file
+    show if: 
+      variable: file_type
+      is: "new"
     datatype: file
     accept: |
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"    
 help: |
+  ### Collecting signatures
   Edit your Word file and type something like `{{advocate.signature}}` on the line
   in the file where you want the signature to appear.
   
   Like this: [FILE insert_signature.png]
   
-  You can replace `advocate` only with a variable we already know about:
-  
-  * client
-  * advocate
-  * individuals[0..n] (add as many as you want, replacing 0 with the number in order)
-  * adverse_parties[0..n] (same as above, this is a list that can be as large as you want)
-  
-  Referring to the variable on its own adds the name of the client/advocate/person
+  This tool knows about 4 kinds of people: 
+  `client`, `advocate`, `individuals[0..n]`
+  and `adverse_parties[0..n]`. (replace the number in the square brackets with any
+  number to get information about several people)
+    
+  Referring to the variable name on its own adds the name of the client/advocate/person
   into the document. E.g., `{{client}}`. If you want to collect the signature, 
   add `.signature` to the variable's name.
   
+  ### Information collected about people
+  You can also refer to information about a person, such as their address. Usually you
+  will use something like `{{ client.address.on_one_line() }}` or `{{client.address_block() }}`.
+
+  ### Special fields
+  To help you get a signature on a retainer, we added two fields you can use in any
+  document: `{{ retainer_gbls_will }}` and `{{ retainer_client_costs }}`.
+  
+  You can also always use the special code `{{ today() }}` to make today's date
+  appear in your document.
+  
+  ### Fields from Legal Server
   If you launch this interview from Legal Server, we'll gather as many of the fields
   as we can. That also includes fields like `client.address_block()`, 
   `client.phone_number`, `client.mobile_number`, `client.email`, and `client.birthdate`.
+  
+  Here is a full [list of the variables you can use from Legal Server](https://github.com/GBLS/docassemble-gbls/wiki/Available-Variable-Names).
 ---
 question: |
   What is your email address?
@@ -162,6 +229,16 @@ subquestion: |
   We'll send you a message at this address when your client has signed the forms.
 fields:
   - no label: advocate.email
+---
+question: |
+  Retainer details
+subquestion: |
+  Give information here about what GBLS is promising to do for the guest.
+fields:
+  - GBLS will do the following: retainer_gbls_will
+    datatype: area
+  - Client will be responsible for the following costs: retainer_client_costs
+    datatype: area
 ---
 field: review_people
 question: |
