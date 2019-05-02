@@ -43,7 +43,7 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.docsign',
-      version='0.6',
+      version='0.7',
       description=(''),
       long_description=u'# docassemble.docsign\r\n\r\n\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, admin@admin.com\r\n\r\n',
       long_description_content_type='text/markdown',
@@ -53,7 +53,7 @@ setup(name='docassemble.docsign',
       url='https://docassemble.org',
       packages=find_packages(),
       namespace_packages=['docassemble'],
-      install_requires=['docassemble.gbls'],
+      install_requires=['docassemble.gbls', 'docassemble.microsoftgraph'],
       zip_safe=False,
       package_data=find_package_data(where='docassemble/docsign/', package='docassemble.docsign'),
      )

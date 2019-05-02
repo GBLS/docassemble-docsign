@@ -152,24 +152,18 @@ code: |
   drive_contents.gathered = True
   gathered_file_questions = True
 ---
+decoration: pen-fancy
 question: |
   Client Signature Tool
 subquestion: |
-  This tool allows you to email or text a document to your client to obtain
-  their signature. You can choose from some templates that IT has already uploaded,
-  including a general release and a retainer, or if you need to have your client
-  sign a new document, such as an agreement, you can upload a new Microsoft Word
-  file with special codes in it.
+  Send your client a document to sign. You can choose from a form that's already
+  part of the form library, or upload a new custom Microsoft Word file.
+
+  To get a client's signature, you just need to add the exact text 
+  `{{ client.signature }}` in the place where you want the signature to go. Click
+  **Help** to learn about more fields you can include.
   
-  IT can help you enter the codes correctly. If all you want is your client's signature,
-  place the exact text `{{ client.signature }}` where you want the signature
-  to appear in the document.
-  
-  Click Help to learn about more codes you can include in the document, including
-  fields from Legal Server.
-  
-  Please use at your own risk for now. This is experimental and may not work when
-  you need it if you wait until the last minute.
+  This tool is experimental. Please use at your own risk.
 fields:
   - no label: file_type
     input type: radio
@@ -313,6 +307,7 @@ code: |
     send_email(to=ls_fields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file])
   send_to_advocate = True
 ---
+decoration: pen-fancy
 question: |
   Please review the document below
 subquestion: |
