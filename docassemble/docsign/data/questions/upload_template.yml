@@ -39,9 +39,9 @@ code: |
   get_advocate_name
   advocate.email
   client.name.first
-  if "retainer\\_gbls\\_will" in final_fields:
+  if "retainer_gbls_will" in final_fields:
     retainer_gbls_will
-  if "retainer\\_client\\_costs" in final_fields:
+  if "retainer_client_costs" in final_fields:
     retainer_client_costs  
   if 'advocate.signature' in final_fields:
     advocate.signature
@@ -83,21 +83,35 @@ buttons:
     url: https://www.gbls.org
 ---
 code: |
-  from docassemble.base.parse import docx_variable_fix
-  result_file = word_to_markdown(the_file.path(), 'docx')
-  if result_file is None:
-    fields = word("Error: no fields could be found in the file")
+  if the_file[0].mimetype == 'application/pdf':
+    final_fields = the_file[0].get_pdf_fields()
   else:
-     with open(result_file.name, 'rU', encoding='utf-8') as fp:
-       result = fp.read()
-       fields = set()
-       for variable in re.findall(r'{{ *([^\} ]+) *}}', result):
-         fields.add(variable)
-       for variable in re.findall(r'{%[a-z]* for [A-Za-z\_][A-Za-z0-9\_]* in *([^\} ]+) *%}', result):
-         fields.add(variable)
-       del fp
-  del result_file       
-  final_fields = fields
+    from docassemble.base.parse import docx_variable_fix
+    result_file = word_to_markdown(the_file.path(), 'docx')
+    if result_file is None:
+      fields = word("Error: no fields could be found in the file")
+    else:
+      with open(result_file.name, 'rU', encoding='utf-8') as fp:
+        result = fp.read()
+        fields = set()
+        methods = r"(.*)(\..*\(\))"
+        for variable in re.findall(r'{{ *([^\} ]+) *}}', result):
+          variable = variable.replace("\\","")
+          matches = re.match(methods, variable)
+          if matches:
+            fields.add(matches.groups()[0])
+          else:           
+            fields.add(variable)
+      for variable in re.findall(r'{%[a-z]* for [A-Za-z\_][A-Za-z0-9\_]* in *([^\} ]+) *%}', result):
+        variable = variable.replace("\\","")
+        matches = re.match(methods, variable)
+        if matches:
+          fields.add(matches.groups()[0])
+        else:           
+          fields.add(variable)         
+      del fp
+    del result_file       
+    final_fields = fields
 ---
 field: list_fields
 question: |
@@ -182,7 +196,7 @@ fields:
       is: "new"
     datatype: file
     accept: |
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"    
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/pdf"    
 help: |
   ### Collecting signatures
   Edit your Word file and type something like `{{advocate.signature}}` on the line
