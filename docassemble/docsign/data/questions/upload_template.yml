@@ -35,7 +35,7 @@ code: |
     the_file
   else:
     the_file
-  list_fields    
+  #list_fields    
   get_advocate_name
   advocate.email
   client.name.first
