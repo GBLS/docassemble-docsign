@@ -35,10 +35,13 @@ code: |
     the_file
   else:
     the_file
-  # list_fields    
+  list_fields    
   get_advocate_name
   advocate.email
   client.name.first
+  for field in final_fields:
+    if field != 'client.signature':
+      value(field)
   if "retainer_gbls_will" in final_fields:
     retainer_gbls_will
   if "retainer_client_costs" in final_fields:
@@ -64,6 +67,8 @@ code: |
 code: |
   # is_client
   client_approves
+  if 'client.signature' in final_fields:
+    client.signature
   download_forms
   approval_workflow = True
 ---
@@ -83,8 +88,14 @@ buttons:
     url: https://www.gbls.org
 ---
 code: |
-  if the_file[0].mimetype == 'application/pdf':
-    final_fields = the_file[0].get_pdf_fields()
+  if isinstance(the_file,DAFileList):
+    is_pdf = the_file[0].mimetype == 'application/pdf'
+  else:
+    is_pdf = the_file.mimetype == 'application/pdf'
+---
+code: |
+  if is_pdf:
+    final_fields = [field[0] for field in the_file[0].get_pdf_fields()]
   else:
     from docassemble.base.parse import docx_variable_fix
     result_file = word_to_markdown(the_file.path(), 'docx')
@@ -110,7 +121,8 @@ code: |
         else:           
           fields.add(variable)         
       del fp
-    del result_file       
+    del result_file
+    fields = [x for x in fields if not '(' in x]
     final_fields = fields
 ---
 field: list_fields
@@ -362,8 +374,21 @@ subquestion: |
   We sent a copy to ${advocate}. You can also download this file for your records.
   
   ${signed_file}
-  
 ---
+if: |
+  is_pdf
+attachment:
+  name: Your letter
+  filename: letter
+  variable name: signed_file
+  pdf template file:
+    code: |
+      the_file
+  code: |
+    [{field: field} for field in final_fields]
+---
+if: |
+  not is_pdf
 attachment:
   name: Your letter
   filename: letter
