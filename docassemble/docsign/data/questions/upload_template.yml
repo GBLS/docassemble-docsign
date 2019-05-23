@@ -22,6 +22,19 @@ objects:
 objects:
   - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
 ---
+code: |
+  if url_args.get('lang', None) == 'es':
+    user_language = 'es'
+  else:
+    user_language = 'en'
+---
+initial: True
+code: |
+  set_language(user_language)
+---
+translations:
+  - upload_template_en_es.xlsx  
+---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml
 ---
@@ -191,6 +204,10 @@ subquestion: |
   
   This tool is experimental. Please use at your own risk.
 fields:
+  - Language: user_language
+    choices:
+      - English: en
+      - Spanish: es
   - no label: file_type
     input type: radio
     choices:
