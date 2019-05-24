@@ -79,6 +79,7 @@ code: |
 ---
 code: |
   # is_client
+  set_language(user_language)
   client_approves
   if 'client.signature' in final_fields:
     client.signature
