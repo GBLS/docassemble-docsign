@@ -52,9 +52,16 @@ code: |
   get_advocate_name
   advocate.email
   client.name.first
-  for field in final_fields:
+  for field in final_fields: # try to gather all the fields before client signature
     if field != 'client.signature':
-      value(field)
+      if "advocate" in field:
+        advocate.name.first
+      elif field == client:
+        client.name.first
+      elif 'adverse_parties' in field:
+        adverse_parties.gather()
+      else:
+        value(field)
   if "retainer_gbls_will" in final_fields:
     retainer_gbls_will
   if "retainer_client_costs" in final_fields:
