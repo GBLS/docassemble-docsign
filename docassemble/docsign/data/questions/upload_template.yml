@@ -53,10 +53,10 @@ code: |
   advocate.email
   client.name.first
   for field in final_fields: # try to gather all the fields before client signature
-    if field != 'client.signature':
+    if not ('client.signature' in field) :
       if "advocate" in field:
         advocate.name.first
-      elif field == client:
+      elif field == "client":
         client.name.first
       elif 'adverse_parties' in field:
         adverse_parties.gather()
