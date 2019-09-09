@@ -10,8 +10,8 @@ features:
   question help button: True
 ---
 modules:
-  - docassemble.base.pandoc
   - docassemble.microsoftgraph.msgraph
+  - .scan_for_vars
   #- .msgraph
 ---
 objects:
@@ -21,6 +21,13 @@ objects:
 ---
 objects:
   - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
+  - guardian: Individual
+---
+question: |
+  What is the client's legal problem?
+fields:
+  - Briefly describe the problem that GBLS will work on. : retainer_client_problem
+    datatype: area
 ---
 code: |
   if url_args.get('lang', None) == 'es':
@@ -52,16 +59,20 @@ code: |
   get_advocate_name
   advocate.email
   client.name.first
-  for field in final_fields: # try to gather all the fields before client signature
-    if not ('client.signature' in field) :
-      if "advocate" in field:
-        advocate.name.first
-      elif field == "client":
-        client.name.first
-      elif 'adverse_parties' in field:
-        adverse_parties.gather()
-      else:
-        value(field)
+  final_fields
+  gather_fields(final_fields, exclude=['client.signature','guardian.signature'])
+  # for field in final_fields: # try to gather all the fields before client signature
+  #   if not ('client.signature' in field) and not ('guardian.signature' in field):
+  #     if "advocate" in field:
+  #       advocate.name.first
+  #     elif "guardian" in field:
+  #       guardian.name.first
+  #     elif field == "client":
+  #       client.name.first
+  #     elif 'adverse_parties' in field:
+  #       adverse_parties.gather()
+  #     else:
+  #       value(field)
   if "retainer_gbls_will" in final_fields:
     retainer_gbls_will
   if "retainer_client_costs" in final_fields:
@@ -74,6 +85,9 @@ code: |
   send_message
   if not defined('client_approves'):
     wait_for_response
+---
+code: |
+  final_fields = get_fields(the_file)
 ---
 event: share_with_user
 code: |
@@ -90,6 +104,8 @@ code: |
   client_approves
   if 'client.signature' in final_fields:
     client.signature
+  if 'guardian.signature' in final_fields:
+    guardian.signature
   download_forms
   approval_workflow = True
 ---
@@ -113,38 +129,6 @@ code: |
     is_pdf = the_file[0].mimetype == 'application/pdf'
   else:
     is_pdf = the_file.mimetype == 'application/pdf'
----
-code: |
-  if is_pdf:
-    final_fields = [field[0] for field in the_file[0].get_pdf_fields()]
-  else:
-    from docassemble.base.parse import docx_variable_fix
-    result_file = word_to_markdown(the_file.path(), 'docx')
-    if result_file is None:
-      fields = word("Error: no fields could be found in the file")
-    else:
-      with open(result_file.name, 'rU', encoding='utf-8') as fp:
-        result = fp.read()
-        fields = set()
-        methods = r"(.*)(\..*\(\))"
-        for variable in re.findall(r'{{ *([^\} ]+) *}}', result):
-          variable = variable.replace("\\","")
-          matches = re.match(methods, variable)
-          if matches:
-            fields.add(matches.groups()[0])
-          else:           
-            fields.add(variable)
-      for variable in re.findall(r'{%[a-z]* for [A-Za-z\_][A-Za-z0-9\_]* in *([^\} ]+) *%}', result):
-        variable = variable.replace("\\","")
-        matches = re.match(methods, variable)
-        if matches:
-          fields.add(matches.groups()[0])
-        else:           
-          fields.add(variable)         
-      del fp
-    del result_file
-    fields = [x for x in fields if not '(' in x]
-    final_fields = fields
 ---
 field: list_fields
 question: |
