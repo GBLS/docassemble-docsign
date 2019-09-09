@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from fnmatch import fnmatchcase
 from distutils.util import convert_path
 
-standard_exclude = ('*.py', '*.pyc', '*~', '.*', '*.bak', '*.swp*')
+standard_exclude = ('*.pyc', '*~', '.*', '*.bak', '*.swp*')
 standard_exclude_directories = ('.*', 'CVS', '_darcs', './build', './dist', 'EGG-INFO', '*.egg-info')
 def find_package_data(where='.', package='', exclude=standard_exclude, exclude_directories=standard_exclude_directories):
     out = {}
@@ -43,9 +43,9 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
     return out
 
 setup(name='docassemble.docsign',
-      version='0.13',
+      version='0.14',
       description=(''),
-      long_description=u'# docassemble.docsign\r\n\r\n\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, admin@admin.com\r\n\r\n',
+      long_description='# docassemble.docsign\r\n\r\n\r\n\r\n## Author\r\n\r\nQuinten Steenhuis, admin@admin.com\r\n\r\n',
       long_description_content_type='text/markdown',
       author='Quinten Steenhuis',
       author_email='admin@admin.com',
