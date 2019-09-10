@@ -1,0 +1,96 @@
+---
+metadata:
+  title: |
+    Generate client documents
+  tags: 
+    - everyone    
+---
+features:
+  question help button: True
+---
+modules:
+  - docassemble.microsoftgraph.msgraph
+  - .scan_for_vars
+---
+include:   
+  - docassemble.gbls:basic-questions-gbls.yml  
+---
+objects:
+  - o365: MSGraphConnectionObject
+  - folders: DADict.using(object_type=LazyFileList, auto_gather=False)
+  - drive_contents: LazyFileList.using(auto_gather=False)  
+---
+id: question order
+mandatory: True
+code: |
+  sp_files
+  the_files
+  final_fields
+  # show_fields
+  gather_fields(final_fields)   # gather_fields(final_fields) #, exclude=['client.signature','guardian.signature'])
+  undefined_field_question
+  #if len(undefined_field_question) > 0:
+  #  gather_leftover_fields
+  download_attachments
+---
+comment: |
+  Load fields from all of the templates
+code: |
+  final_fields = get_multiple_fields(the_files) 
+---
+code: |
+  the_files = DAList('the_files', object_type = DAObject, elements=[sp_file.as_dafile() for sp_file in sp_files])
+---
+code: |
+  drive_id = o365.get_drive_id("gblsma.sharepoint.com:/sites/helpdesk","Basic_Templates")
+  # gather drive_contents
+  o365.get_files_in_folder("gblsma.sharepoint.com:/sites/helpdesk", "Basic_Templates", drive_id=drive_id, lazylist=drive_contents)
+  drive_contents.gathered = True
+  gathered_file_questions = True
+---
+id: select a template
+question: |
+  Select the template you want to use
+fields:
+  - no label: sp_files
+    datatype: object_checkboxes
+    choices: drive_contents
+    show if:
+      variable: file_type
+      is: "existing"
+---
+code: |
+  undefined_field_question = undefinable_fields_code(final_fields)
+---
+question: |
+  Remaining questions
+subquestion: |
+  Provide an answer for each field below.  
+fields:
+  - code: |
+      undefined_field_question
+continue button field: gather_leftover_fields
+---
+attachment:
+  name: ${the_files[i].filename}
+  filename: the_files[i].filename
+  variable name: the_files[i].attachment
+  docx template file:
+    code: |
+     the_files[i]
+---
+event: download_attachments
+question: |
+  Your documents are ready
+attachment code: |
+  [item.attachment for item in the_files]
+---
+comment: |
+  Debugging
+event: show_fields
+question: |
+  The fields
+subquestion: |
+  ${final_fields}
+
+  

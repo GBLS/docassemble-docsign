@@ -124,12 +124,6 @@ buttons:
   - No.: exit
     url: https://www.gbls.org
 ---
-code: |
-  if isinstance(the_file,DAFileList):
-    is_pdf = the_file[0].mimetype == 'application/pdf'
-  else:
-    is_pdf = the_file.mimetype == 'application/pdf'
----
 field: list_fields
 question: |
   Fields
@@ -174,7 +168,7 @@ columns:
   - Name: |
       row_item
 edit:
-  - name.text  
+  - name.text
 ---
 code: |
   drive_id = o365.get_drive_id("gblsma.sharepoint.com:/sites/helpdesk","Templates")
