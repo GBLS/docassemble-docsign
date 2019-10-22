@@ -14,29 +14,64 @@ modules:
 ---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml  
+  - manage_templates.yml
 ---
 objects:
   - o365: MSGraphConnectionObject
   - folders: DADict.using(object_type=LazyFileList, auto_gather=False)
   - drive_contents: LazyFileList.using(auto_gather=False)  
 ---
-id: question order
+default screen parts:
+  under: |
+    [Edit your settings](${url_action('review_settings')})
+---
 mandatory: True
 code: |
+  # Initialize the objects that will be answered by generic questions so they can be accurately tested for 
+  # answerability. Docassemble is lazy about this, but it has limited/no performance impact.
+  # If we don't initialize, Docassemble doesn't know if the question can be answered.
+  client
+  advocate
+  adverse_parties
+--- 
+id: question order
+mandatory: True  
+code: |
+  if not user_logged_in():
+    not_signed_in
   sp_files
   the_files
   final_fields
   # show_fields
-  gather_fields(final_fields)   # gather_fields(final_fields) #, exclude=['client.signature','guardian.signature'])
-  undefined_field_question
-  #if len(undefined_field_question) > 0:
+  if signature_choice == 'paper':
+    set_signatures_empty
+  gather_fields(final_fields, exclude=undefinable)   # gather_fields(final_fields) #, exclude=['client.signature','guardian.signature'])
+  # undefined_field_question
+  #show_undefined_fields
+  #if len(undefinable) > 0:
   #  gather_leftover_fields
   download_attachments
 ---
 comment: |
   Load fields from all of the templates
 code: |
-  final_fields = get_multiple_fields(the_files) 
+  final_fields = get_multiple_fields(the_files)
+---
+code: |
+  undefinable = undefinable_fields(final_fields)
+---
+code: |
+  client.signature = DAEmpty()
+  set_signatures_empty = True
+---
+question: Test
+fields:
+    - test field: test_field  
+---
+field: show_undefined_fields
+question: |
+
+  ${undefinable}}
 ---
 code: |
   the_files = DAList('the_files', object_type = DAObject, elements=[sp_file.as_dafile() for sp_file in sp_files])
@@ -48,19 +83,36 @@ code: |
   drive_contents.gathered = True
   gathered_file_questions = True
 ---
+event: not_signed_in
+question: |
+  Please sign-in
+subquestion: |
+  You need to sign-in to use this interview.
+
+  ${action_button_html('https://interviews-dev.gbls.org/authorize/azure',label="Sign-in with your GBLS account", color='primary',icon='sign-in-alt')}
+under: |
+    
+---
 id: select a template
 question: |
-  Select the template you want to use
+  Select the template(s) you want to use
 fields:
-  - no label: sp_files
+  - Template: sp_files
     datatype: object_checkboxes
     choices: drive_contents
-    show if:
-      variable: file_type
-      is: "existing"
+    none of the above: False
+  - Get the client's signature: signature_choice
+    datatype: radio
+    choices:
+      - Digitally: digital
+        help: |
+          Note that this will work only if the template includes a signature field
+      - On paper: paper
+    default: digital
 ---
 code: |
-  undefined_field_question = undefinable_fields_code(final_fields)
+  # ask this separately so we know
+  undefined_field_question = undefinable_fields_code(final_fields)  
 ---
 question: |
   Remaining questions
@@ -68,16 +120,30 @@ subquestion: |
   Provide an answer for each field below.  
 fields:
   - code: |
-      undefined_field_question
+      undefinable_fields_code(final_fields)
 continue button field: gather_leftover_fields
 ---
+if: |
+  not the_files[i].mimetype == 'application/pdf'
 attachment:
-  name: ${the_files[i].filename}
-  filename: the_files[i].filename
+  name: ${the_files[i].filename.rsplit('.', 1)[0]}
+  filename: ${the_files[i].filename.rsplit('.', 1)[0]}
   variable name: the_files[i].attachment
   docx template file:
     code: |
      the_files[i]
+---
+if: |
+  the_files[i].mimetype == 'application/pdf'
+attachment:
+  name: ${the_files[i].filename.rsplit('.', 1)[0]}
+  filename: ${the_files[i].filename.rsplit('.', 1)[0]}
+  variable name: the_files[i].attachment
+  pdf template file:
+    code: |
+      the_files[i]
+  code: |
+    pdf_fields_code(final_fields)
 ---
 event: download_attachments
 question: |
