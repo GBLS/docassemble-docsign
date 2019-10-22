@@ -1,0 +1,74 @@
+---
+objects:
+  - userdata: DAStore
+---
+mandatory: True
+code: |
+  try:
+    preferences = userdata.get("prefs") or DAObject('preferences')
+  except:
+    userdata.delete('prefs')
+    preferences = DAObject('preferences')
+---
+reconsider: True
+code: |
+  if defined('preferences'):
+    if defined('preferences.signature'):
+      preferences.signature.set_attributes(persistent=True)
+    userdata.set('prefs', preferences)
+  log("Saving preferences",'info')
+  save_to_database = True
+---
+question: |
+  Signature
+signature: preferences.signature    
+---
+code: |
+  closings = ['Regards,','Sincerely,','Yours,','Yours sincerely,','Yours truly,','Custom']
+---
+if: not defined('preferences.closing') or preferences.closing in closings
+question: |
+  Your letter preferences
+fields:
+  - Phone number: preferences.phone_number
+    required: False  
+  - Fax number: preferences.fax_number
+    required: False  
+  - Title: preferences.title
+    required: False  
+  - Department: preferences.department
+    required: False  
+  - BBO number: preferences.bbo_number
+    required: False  
+  - Preferred closing: preferences.closing
+    code: |
+      closings
+    required: False  
+  - Custom closing: preferences.closing
+    show if:
+      variable: preferences.closing
+      is: "Custom"
+---
+if: defined('preferences.closing') and not preferences.closing in closings
+question: |
+  Your letter preferences
+fields:
+  - Phone number: preferences.phone_number
+    required: False  
+  - Fax number: preferences.fax_number
+    required: False  
+  - Title: preferences.title
+    required: False  
+  - Department: preferences.department
+    required: False  
+  - BBO number: preferences.bbo_number
+    required: False  
+  - Preferred closing: preferences.closing
+    code: |
+      closings
+    show if:
+      variable: preferences.closing
+      is: ''
+    required: False  
+  - Custom closing: preferences.closing
+    required: False

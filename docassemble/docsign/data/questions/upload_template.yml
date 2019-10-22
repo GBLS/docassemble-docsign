@@ -61,18 +61,6 @@ code: |
   client.name.first
   final_fields
   gather_fields(final_fields, exclude=['client.signature','guardian.signature'])
-  # for field in final_fields: # try to gather all the fields before client signature
-  #   if not ('client.signature' in field) and not ('guardian.signature' in field):
-  #     if "advocate" in field:
-  #       advocate.name.first
-  #     elif "guardian" in field:
-  #       guardian.name.first
-  #     elif field == "client":
-  #       client.name.first
-  #     elif 'adverse_parties' in field:
-  #       adverse_parties.gather()
-  #     else:
-  #       value(field)
   if "retainer_gbls_will" in final_fields:
     retainer_gbls_will
   if "retainer_client_costs" in final_fields:
@@ -172,7 +160,6 @@ edit:
 ---
 code: |
   drive_id = o365.get_drive_id("gblsma.sharepoint.com:/sites/helpdesk","Templates")
-  # folder_list = o365.get_folders_in_folder("gblsma.sharepoint.com:/sites/helpdesk", drive_id=drive_id)
   o365.get_files_in_folder("gblsma.sharepoint.com:/sites/helpdesk", "Templates", drive_id=drive_id, lazylist=drive_contents)
   drive_contents.gathered = True
   gathered_file_questions = True
@@ -194,6 +181,7 @@ fields:
     choices:
       - English: en
       - Spanish: es
+    default: en
   - no label: file_type
     input type: radio
     choices:
@@ -378,8 +366,15 @@ subquestion: |
   
   ${signed_file}
 ---
+code: |
+  temp_fields = dict()
+  for field in final_fields:
+    temp_fields[field] = value(field)
+  pdf_fields = temp_fields
+  del temp_fields
+---
 if: |
-  is_pdf
+  the_file[0].mimetype == 'application/pdf'
 attachment:
   name: Your letter
   filename: letter
@@ -388,10 +383,10 @@ attachment:
     code: |
       the_file
   code: |
-    [{field: field} for field in final_fields]
+    pdf_fields
 ---
 if: |
-  not is_pdf
+  not the_file[0].mimetype == 'application/pdf'
 attachment:
   name: Your letter
   filename: letter
