@@ -2,24 +2,6 @@
 include: 
   - template_questions.yml
 ---
-need: save_to_database
-# event: review_settings
-question: |
-  Manage your template settings
-subquestion: |
-  ### ${get_user_info().get('first_name')}
-  |&nbsp; | &nbsp;| &nbsp;|
-  |-------|-------|-------|
-  |Phone: | ${showifdef('preferences.phone_number')}| [Edit](${url_action('preferences.phone_number')}) |
-  |Fax number: | ${showifdef('preferences.fax_number')}| [Edit](${url_action('preferences.fax_number')}) |
-  |Title: | ${showifdef('preferences.title')}| [Edit](${url_action('preferences.title')}) |
-  |Department: | ${showifdef('preferences.department')}| [Edit](${url_action('preferences.department')}) |
-  |BBO number: | ${showifdef('preferences.bbo_number')}| [Edit](${url_action('preferences.bbo_number')}) |
-  |Closing: | ${showifdef('preferences.closing')}| [Edit](${url_action('preferences.closing')}) |
-
-  Your signature:
-  ${showifdef('preferences.signature')} [Edit](${url_action('preferences.signature')})
-
-  Use the QR code to load this interview on your phone:
-  ${interview_url_as_qr()}
-field: review_settings  
+mandatory: True
+code: |
+  review_settings

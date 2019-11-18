@@ -1,0 +1,55 @@
+---
+modules: 
+  - docassemble.MACourts.macourts
+---
+objects:
+  - macourts: MACourtList.using(courts=['district_courts', 'housing_courts','bmc','superior_courts','land_court','juvenile_courts','probate_and_family_courts'])
+---
+code: |
+  potential_parties = adverse_parties + household + [client]
+---
+question: |
+  Court Pleading
+subquestion: |
+  The information below will be used to generate the 
+  case caption.
+fields:
+  - Court name: court
+    datatype: object
+    choices: macourts
+  - Pleading title (e.g., Motion to Dismiss): pleading_title
+    required: False
+  - Party labels: party_labels
+    datatype: radio
+    default: plaintiff
+    choices:
+      - Petitioner/Respondent: petitioner
+      - Plaintiff/Defendant: plaintiff
+  - Name of petitioners/plaintiffs: initiator
+    datatype: object_checkboxes
+    choices: potential_parties
+    none of the above: True
+    #disable others: 
+    #  - initiator_other
+  - Other: initiator_other
+    required: False
+  - Name of respondents/defendants: defender
+    none of the above: True
+    datatype: object_checkboxes
+    choices: potential_parties
+    #disable others:
+    #  - defender_other
+  - Other: defender_other
+    required: False
+---
+code: |
+  if party_labels == 'petitioner':
+    initiator_label = 'Petitioner'
+    defender_label = 'Respondent'
+  else:
+    initiator_label = 'Plaintiff'
+    defender_label = 'Defendant'
+  if not defined('initiator') and len('initiator_other') > 0:
+    initiator = initiator_other
+  if not defined('defender') and len('defender_other') > 0:
+    defender = defender_other
