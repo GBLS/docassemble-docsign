@@ -11,15 +11,19 @@ features:
 modules:
   - docassemble.microsoftgraph.msgraph
   - .scan_for_vars
+  - .greetings
 ---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml  
-  - manage_templates.yml
+  - template_questions.yml
+  - letter_questions.yml
+  - court_questions.yml
 ---
 objects:
   - o365: MSGraphConnectionObject
   - folders: DADict.using(object_type=LazyFileList, auto_gather=False)
-  - drive_contents: LazyFileList.using(auto_gather=False)  
+  - drive_contents: LazyFileList.using(auto_gather=False)
+  - ouser: Individual # placeholder object for values from Office 365
 ---
 default screen parts:
   under: |
@@ -30,16 +34,26 @@ code: |
   # Initialize the objects that will be answered by generic questions so they can be accurately tested for 
   # answerability. Docassemble is lazy about this, but it has limited/no performance impact.
   # If we don't initialize, Docassemble doesn't know if the question can be answered.
+  preferences
+  ouser  
   client
+  household
+  children
   advocate
   adverse_parties
+  income
 --- 
 id: question order
 mandatory: True  
 code: |
   if not user_logged_in():
     not_signed_in
-  sp_files
+  ls_fields
+  if defined('advocate.email') or user_info().email:
+    # log(o365.get_user(advocate.email))
+    load_ouser_from_office365
+    try_setting_prefs_from_advocate
+  sp_files 
   the_files
   final_fields
   # show_fields
@@ -51,6 +65,51 @@ code: |
   #if len(undefinable) > 0:
   #  gather_leftover_fields
   download_attachments
+---
+sets:
+  - ouser.phone_number
+  - ouser.jobTitle
+id: office365
+code: |
+  # We can load two fields from Office 365: job title and phone number
+  # We shouldn't overwrite the user's preference if those already exist.
+  if defined('advocate.email'):
+    o365.get_user(advocate.email, ouser)
+  else:
+    o365.get_user(user_info().email, ouser)
+  load_ouser_from_office365=True
+---
+# scan for variables: False
+code: |
+  # Fill-in information in the advocate in priority order.
+  # Highest priority is given to the current value in DAStore('prefs')
+
+  if not defined('preferences.title') or preferences.title == '' or preferences.title is None:
+    preferences.jobTitle = ouser.jobTitle
+  if not defined('preferences.phone_number') or preferences.phone_number == '' or preferences.phone_number is None:
+    if defined('ouser.phone_number'):
+      preferences.phone_number = ouser.phone_number
+    else:
+      preferences.phone_number = ''
+  if not defined('preferences.department') or preferences.department == '' or preferences.department is None:
+    if defined('ouser.department'):
+      preferences.department = ouser.department
+    elif defined('advocate.program'): # this is the value from Legal Server, which may or may not be a good guess
+      preferences.department = advocate.program
+    else:
+      preferences.department = ''
+  if not defined('preferences.fax_number') or preferences.fax_number =='' or preferences.fax_number is None:
+    if defined('ouser.fax_number'):
+      preferences.fax_number = ouser.fax_number
+    else:
+      preferences.fax_number = ''
+  # save_to_database # store the phone/jobTitle/department fields in preferences
+  
+  advocate.jobTitle = preferences.jobTitle
+  advocate.phone_number  = preferences.phone_number
+  advocate.department = preferences.department
+
+  try_setting_prefs_from_advocate = True 
 ---
 comment: |
   Load fields from all of the templates
@@ -96,6 +155,8 @@ under: |
 id: select a template
 question: |
   Select the template(s) you want to use
+subquestion: |
+  ${raw}  
 fields:
   - Template: sp_files
     datatype: object_checkboxes
