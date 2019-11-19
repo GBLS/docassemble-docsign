@@ -61,21 +61,18 @@ code: |
   client.name.first
   final_fields
   gather_fields(final_fields, exclude=['client.signature','guardian.signature'])
-  if "retainer_gbls_will" in final_fields:
-    retainer_gbls_will
-  if "retainer_client_costs" in final_fields:
-    retainer_client_costs  
-  if 'advocate.signature' in final_fields:
-    advocate.signature
-  if url_args.get('args'):
-    review_people
+  #if "retainer_gbls_will" in final_fields:
+  #  retainer_gbls_will
+  #if "retainer_client_costs" in final_fields:
+  #  retainer_client_costs  
+  #if 'advocate.signature' in final_fields:
+  #  advocate.signature
+  #if url_args.get('args'):
+  #  review_people
   send_by_email
   send_message
   if not defined('client_approves'):
     wait_for_response
----
-code: |
-  final_fields = get_fields(the_file)
 ---
 event: share_with_user
 code: |
@@ -365,16 +362,15 @@ subquestion: |
   We sent a copy to ${advocate}. You can also download this file for your records.
   
   ${signed_file}
+---  
+code: |
+  final_fields = get_multiple_fields(the_file)
 ---
 code: |
-  temp_fields = dict()
-  for field in final_fields:
-    temp_fields[field] = value(field)
-  pdf_fields = temp_fields
-  del temp_fields
+  undefinable = undefinable_fields(final_fields)
 ---
 if: |
-  the_file[0].mimetype == 'application/pdf'
+  the_file.mimetype == 'application/pdf'
 attachment:
   name: Your letter
   filename: letter
@@ -386,7 +382,7 @@ attachment:
     pdf_fields
 ---
 if: |
-  not the_file[0].mimetype == 'application/pdf'
+  not the_file.mimetype == 'application/pdf'
 attachment:
   name: Your letter
   filename: letter
