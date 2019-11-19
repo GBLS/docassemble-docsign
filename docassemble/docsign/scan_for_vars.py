@@ -4,7 +4,7 @@ from docassemble.base.interview_cache import get_interview
 from docassemble.base.pandoc import word_to_markdown
 from docassemble.base.parse import (InterviewStatus, docx_variable_fix,
                                     get_initial_dict)
-from docassemble.base.util import Address, DAFileList, Individual, user_info, text_type, all_variables, DAEmpty
+from docassemble.base.util import Address, DAFileList, DAFile, Individual, user_info, text_type, all_variables, DAEmpty
 
 __all__ = ['get_fields','gather_fields', 'get_multiple_fields','definable','undefinable_fields', 'undefinable_fields_code','pdf_fields_code','set_attribute_to_value']
 
@@ -31,8 +31,11 @@ def gather_fields(field_list, exclude=[], skip_undefinable = True, undefinable=N
 
 def get_multiple_fields(file_list, exclude=[]):
   fields = set() 
-  for f in file_list:
-    fields.update(get_fields(f))
+  if isinstance(file_list,DAFile):
+    fields.update(get_fields(file_list))
+  else:
+    for f in file_list:
+      fields.update(get_fields(f))
   return fields
 
 def get_fields(the_file, include_attributes=False):
