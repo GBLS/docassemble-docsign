@@ -231,7 +231,8 @@ subquestion: |
   ##### :download: Other download options
   * [:file-pdf: Download all files as a PDF](${pdf_concatenate([item.attachment for item in the_files]).url_for()})
   * [:file-archive: Download all editable files as a Zip](${zip_file([item.attachment.docx for item in the_files]).url_for()})
-
+buttons:
+  - Exit: exit
 under: |
      
 ---

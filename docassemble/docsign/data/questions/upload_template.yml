@@ -370,7 +370,7 @@ code: |
   undefinable = undefinable_fields(final_fields)
 ---
 if: |
-  the_file.mimetype == 'application/pdf'
+  the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else False
 attachment:
   name: Your letter
   filename: letter
@@ -382,7 +382,7 @@ attachment:
     pdf_fields
 ---
 if: |
-  not the_file.mimetype == 'application/pdf'
+  not the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else not the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else True
 attachment:
   name: Your letter
   filename: letter
