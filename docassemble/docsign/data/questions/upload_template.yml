@@ -8,6 +8,7 @@ metadata:
 ---
 features:
   question help button: True
+  use catchall: True
 ---
 modules:
   - docassemble.microsoftgraph.msgraph
@@ -316,9 +317,15 @@ code: |
 ---
 code: |
   if task_not_yet_performed('send advocate email'):
-    send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file])
+    if hasattr(signed_file,'docx'):
+      send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file.pdf,signed_file.docx])
+    else:
+      send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file])
   if defined('ls_fields.case_email') and task_not_yet_performed('send to legalserver'):
-    send_email(to=ls_fields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file])
+    if hasattr(signed_file,'docx'):
+      send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file.pdf,signed_file.docx])
+    else:      
+      send_email(to=ls_fields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file.pdf])
   send_to_advocate = True
 ---
 decoration: pen-fancy
@@ -393,3 +400,42 @@ attachment:
   valid formats:
     - pdf
     - docx
+---
+generic object: DACatchAll
+question: |
+  What is ${ x.object_name() }?
+fields:
+  - no label: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.context == 'float'
+generic object: DACatchAll
+question: |
+  How much is ${ x.object_name() }?
+fields:
+  - Amount: x.value
+    datatype: currency
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.data_type_guess() == 'bool'
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+yesno: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.object_name().endswith('date')
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+fields:
+  - Date: x.value
+    datatype: date
+validation code: |
+  define(x.instanceName, x.value)
