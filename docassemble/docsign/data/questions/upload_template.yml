@@ -20,7 +20,23 @@ objects:
   - folders: DADict.using(object_type=LazyFileList, auto_gather=False)
   - drive_contents: LazyFileList.using(auto_gather=False)  
 ---
+mandatory: True
 objects:
+  - client: Individual
+  - client.address: Address
+  - spouse: Individual
+  - spouse.address: Address
+  - advocate: Individual
+  - advocate.address: Address
+  - pbadvocate: Individual
+  - pbadvocate.address: Address
+  - initiator: Individual
+  - initiator.address: Address
+---
+objects:
+  - household: HouseholdList.using(auto_gather=False,gathered=True)
+  - income: IncomeList.using(auto_gather=False,gathered=True)
+  - adverse_parties: DAList.using(object_type=Person,auto_gather=False,gathered=True)
   - individuals: DAList.using(object_type=Individual, auto_gather=False,gathered=True)
   - guardian: Individual
 ---
@@ -43,8 +59,67 @@ code: |
 translations:
   - upload_template_en_es.xlsx  
 ---
+generic object: DACatchAll
+question: |
+  What is ${ x.object_name() }?
+fields:
+  - no label: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.context == 'float'
+generic object: DACatchAll
+question: |
+  How much is ${ x.object_name() }?
+fields:
+  - Amount: x.value
+    datatype: currency
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.data_type_guess() == 'bool'
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+yesno: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.object_name().endswith('date')
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+fields:
+  - Date: x.value
+    datatype: date
+validation code: |
+  define(x.instanceName, x.value)
+---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml
+---
+mandatory: True
+id: set signature placeholder
+code: |
+  if task_not_yet_performed('set signature'):
+    client.signature = '[Your signature here]'
+    guardian.signature = '[Guardian signature here]'
+    mark_task_as_performed('set signature')
+---
+code: |
+  status = 'advocate'
+---
+initial: True
+code: |
+  process_action()
+---
+event: switch_to_client
+code: |
+  if 'status' in action_arguments():
+    status = action_argument('status')
 ---
 id: interview_order
 mandatory: True
@@ -56,44 +131,35 @@ code: |
     the_file
   else:
     the_file
-  #list_fields    
   get_advocate_name
   advocate.email
-  client.name.first
-  final_fields
-  gather_fields(final_fields, exclude=['client.signature','guardian.signature'])
-  #if "retainer_gbls_will" in final_fields:
-  #  retainer_gbls_will
-  #if "retainer_client_costs" in final_fields:
-  #  retainer_client_costs  
-  #if 'advocate.signature' in final_fields:
-  #  advocate.signature
-  #if url_args.get('args'):
-  #  review_people
+  draft_letter
   send_by_email
   send_message
-  if not defined('client_approves'):
+  hold_advocate
+  if status == 'advocate':
     wait_for_response
+  set_language(user_language)
+  is_client
+  client_approves
+  signature_reset
+  signed_file
+  send_to_advocate
+  download_forms
 ---
-event: share_with_user
 code: |
-  approval_workflow
+  undefine('client.signature')
+  undefine('guardian.signature')
+  signature_reset = True
+---
+code: |
+  hold_advocate = True
+  prevent_going_back()
 ---
 code: |
   if file_type == 'existing':
     the_file = sp_file.as_dafile()
   load_file = True
----
-code: |
-  # is_client
-  set_language(user_language)
-  client_approves
-  if 'client.signature' in final_fields:
-    client.signature
-  if 'guardian.signature' in final_fields:
-    guardian.signature
-  download_forms
-  approval_workflow = True
 ---
 question: |
   Are you ${client}?
@@ -109,16 +175,6 @@ buttons:
         is_client = True
   - No.: exit
     url: https://www.gbls.org
----
-field: list_fields
-question: |
-  Fields
-subquestion: |
-  ${comma_and_list(final_fields)}
-  
-  Uses retainer fields: ${'retainer_gbls_will' in final_fields}
-  
-  ${'client' in final_fields}
 ---
 code: |
   if not defined('advocate.name.first'):
@@ -284,7 +340,7 @@ review:
 question: |
   Ready to send out for a signature?
 subquestion: |
-  You can right-click and copy [the link to the interview](${interview_url_action('share_with_user')}).
+  You can right-click and copy [the link to the interview](${interview_url_action('switch_to_client',status='client')}).
   Or send by text/email by entering it below.
 fields:
   - Send link via email?: send_by_email
@@ -324,8 +380,9 @@ code: |
   if defined('ls_fields.case_email') and task_not_yet_performed('send to legalserver'):
     if hasattr(signed_file,'docx'):
       send_email(to=advocate.email, template=send_to_advocate_msg, task='send advocate email', attachments=[signed_file.pdf,signed_file.docx])
-    else:      
+    else:
       send_email(to=ls_fields.case_email,template=send_to_advocate_msg,task='send to legalserver', attachments=[signed_file.pdf])
+  
   send_to_advocate = True
 ---
 decoration: pen-fancy
@@ -334,7 +391,7 @@ question: |
 subquestion: |
   ${advocate} sent you this file for you to sign:
   
-  ${pdf_concatenate(the_file)}
+  ${pdf_concatenate(draft_letter)}
   
   Are you ready to sign it?
 yesno:  client_approves
@@ -344,7 +401,7 @@ subject: |
   ${advocate} sent you a document to sign
 content: |
   ${advocate} from GBLS sent you a file that needs your signature. Please review
-  and sign it by clicking this link: ${interview_url_action('share_with_user')}
+  and sign it by clicking this link: ${interview_url_action('switch_to_client',status='client')}
 ---
 template: send_to_advocate_msg
 subject: |
@@ -360,8 +417,6 @@ question: |
 subquestion: |
   We sent the file to ${client} for review.
 ---
-need: send_to_advocate
-mandatory: True
 event: download_forms
 question: |
   Here is your document.
@@ -401,41 +456,27 @@ attachment:
     - pdf
     - docx
 ---
-generic object: DACatchAll
-question: |
-  What is ${ x.object_name() }?
-fields:
-  - no label: x.value
-validation code: |
-  define(x.instanceName, x.value)
+if: |
+  the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else False
+attachment:
+  name: Your letter
+  filename: letter
+  variable name: draft_letter
+  pdf template file:
+    code: |
+      the_file
+  code: |
+    pdf_fields
 ---
 if: |
-  x.context == 'float'
-generic object: DACatchAll
-question: |
-  How much is ${ x.object_name() }?
-fields:
-  - Amount: x.value
-    datatype: currency
-validation code: |
-  define(x.instanceName, x.value)
----
-if: |
-  x.data_type_guess() == 'bool'
-generic object: DACatchAll
-question: |
-  ${x.object_name()}?
-yesno: x.value
-validation code: |
-  define(x.instanceName, x.value)
----
-if: |
-  x.object_name().endswith('date')
-generic object: DACatchAll
-question: |
-  ${x.object_name()}?
-fields:
-  - Date: x.value
-    datatype: date
-validation code: |
-  define(x.instanceName, x.value)
+  not the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else not the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else True
+attachment:
+  name: Your letter
+  filename: letter
+  variable name: draft_letter
+  docx template file:
+    code: |
+      the_file    
+  valid formats:
+    - pdf
+    - docx

@@ -14,6 +14,45 @@ modules:
   - .scan_for_vars
   - .greetings
 ---
+generic object: DACatchAll
+question: |
+  What is ${ x.object_name() }?
+fields:
+  - no label: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.context == 'float'
+generic object: DACatchAll
+question: |
+  How much is ${ x.object_name() }?
+fields:
+  - Amount: x.value
+    datatype: currency
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.data_type_guess() == 'bool'
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+yesno: x.value
+validation code: |
+  define(x.instanceName, x.value)
+---
+if: |
+  x.object_name().endswith('date')
+generic object: DACatchAll
+question: |
+  ${x.object_name()}?
+fields:
+  - Date: x.value
+    datatype: date
+validation code: |
+  define(x.instanceName, x.value)
+---
 include:   
   - docassemble.gbls:basic-questions-gbls.yml  
   - template_questions.yml
@@ -257,42 +296,3 @@ code: |
   if defined('ls_fields.case_email') and task_not_yet_performed('send to legalserver'):
     send_email(to=ls_fields.case_email,template=send_to_legal_server_msg,task='send to legalserver', attachments=[item.attachment.docx for item in the_files])
   send_to_legal_server = True
----
-generic object: DACatchAll
-question: |
-  What is ${ x.object_name() }?
-fields:
-  - no label: x.value
-validation code: |
-  define(x.instanceName, x.value)
----
-if: |
-  x.context == 'float'
-generic object: DACatchAll
-question: |
-  How much is ${ x.object_name() }?
-fields:
-  - Amount: x.value
-    datatype: currency
-validation code: |
-  define(x.instanceName, x.value)
----
-if: |
-  x.data_type_guess() == 'bool'
-generic object: DACatchAll
-question: |
-  ${x.object_name()}?
-yesno: x.value
-validation code: |
-  define(x.instanceName, x.value)
----
-if: |
-  x.object_name().endswith('date')
-generic object: DACatchAll
-question: |
-  ${x.object_name()}?
-fields:
-  - Date: x.value
-    datatype: date
-validation code: |
-  define(x.instanceName, x.value)

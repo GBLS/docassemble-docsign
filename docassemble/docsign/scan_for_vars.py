@@ -28,6 +28,8 @@ def gather_fields(field_list, exclude=[], skip_undefinable = True, undefinable=N
         value(field + '.address')
       else:
         value(field) # use Docassemble function to require the definition of the field
+  
+  return True
 
 def get_multiple_fields(file_list, exclude=[]):
   fields = set() 
