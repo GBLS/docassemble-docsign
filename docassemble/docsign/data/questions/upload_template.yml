@@ -434,8 +434,8 @@ code: |
 if: |
   the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else False
 attachment:
-  name: Your letter
-  filename: letter
+  name: The letter
+  filename: ${the_file[0].filename}
   variable name: signed_file
   pdf template file:
     code: |
@@ -446,8 +446,8 @@ attachment:
 if: |
   not the_file.mimetype == 'application/pdf' if defined('the_file.mimetype') else not the_file[0].mimetype=='application/pdf' if defined('the_file[0].mimetype') else True
 attachment:
-  name: Your letter
-  filename: letter
+  name: The letter
+  filename: ${the_file[0].filename}
   variable name: signed_file
   docx template file:
     code: |
