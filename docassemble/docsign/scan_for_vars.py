@@ -4,7 +4,7 @@ from docassemble.base.interview_cache import get_interview
 from docassemble.base.pandoc import word_to_markdown
 from docassemble.base.parse import (InterviewStatus, docx_variable_fix,
                                     get_initial_dict)
-from docassemble.base.util import Address, DAFileList, DAFile, Individual, user_info, text_type, all_variables, DAEmpty
+from docassemble.base.util import Address, DAFileList, DAFile, Individual, user_info, all_variables, DAEmpty
 
 __all__ = ['get_fields','gather_fields', 'get_multiple_fields','definable','undefinable_fields', 'undefinable_fields_code','pdf_fields_code','set_attribute_to_value']
 
